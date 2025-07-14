@@ -97,7 +97,7 @@
 					>
 						<option value="">{$_('All')}</option>
 						{#each groupList as group}
-							<option value={group.id}>{elipsis(group.name)}</option>
+							<option value={group.id} selected={groupId === String(group.id)}>{elipsis(group.name)}</option>
 						{/each}
 					</select>
 				</div>
