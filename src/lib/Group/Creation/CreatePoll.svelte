@@ -25,7 +25,7 @@
 		faChevronDown
 	} from '@fortawesome/free-solid-svg-icons';
 	import Fa from 'svelte-fa';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Select from '$lib/Generic/Select.svelte';
 	import type { WorkGroup } from '../WorkingGroups/interface';
 	import { groupUserStore } from '$lib/Group/interface';
@@ -68,7 +68,7 @@
 	const getGroupTags = async () => {
 		const { res, json } = await fetchRequest('GET', `group/${groupId}/tags`);
 		if (res.ok) {
-			tags = json.results;
+			tags = json?.results;
 		}
 	};
 
@@ -96,15 +96,15 @@
 		formData.append('poll_type', (selected_poll === 'Text Poll' ? 4 : 3).toString());
 		formData.append('dynamic', selected_poll === 'Text Poll' ? 'false' : 'true');
 		formData.append('public', isPublic.toString());
-		formData.append('public', isPublic.toString());
 		formData.append('pinned', 'false');
 		formData.append('tag', tags[0]?.id?.toString() || '1');
-		if (workGroup && selected_poll === 'Date Poll' && !isPublic)
-			// formData.append('work_group_id', workGroup.toString());
 
-			images.forEach((image) => {
-				formData.append('attachments', image);
-			});
+		images.forEach((image) => {
+			formData.append('attachments', image);
+		});
+
+		if (workGroup && selected_poll === 'Date Poll' && !isPublic)
+			formData.append('work_group_id', workGroup.toString());
 
 		const { res, json } = await fetchRequest(
 			'POST',
@@ -124,13 +124,15 @@
 	};
 
 	const createThread = async () => {
-		let thread: { title: string; description?: string; work_group_id?: number | null } = {
+		let thread: { title: string; description?: string; public?:boolean, work_group_id?: number | null } = {
 			title
 		};
 
 		if (description) thread.description = description;
 
 		if (workGroup) thread.work_group_id = workGroup;
+
+		if (isPublic) thread.public = isPublic;
 
 		const { res, json } = await fetchRequest(
 			'POST',
@@ -176,9 +178,22 @@
 		const { res, json } = await fetchRequest('GET', `group/${groupId}/list`);
 
 		if (!res.ok) return;
-		workGroups = json.results;
+		workGroups = json?.results;
 		workGroups = workGroups.filter((workGroup) => workGroup.joined);
 	};
+
+	const handleKeyDown = (event: KeyboardEvent) => {
+		// Check for a specific key, e.g., the "k" key:
+		if (event.ctrlKey && event.key === 'Enter') {
+			selectedPage === 'poll' ? createPoll() : createThread();
+		}
+	};
+
+	document.addEventListener('keydown', handleKeyDown);
+
+	onDestroy(() => {
+		document.removeEventListener('keydown', handleKeyDown);
+	});
 
 	onMount(async () => {
 		getGroupTags();
@@ -229,7 +244,6 @@
 					bind:value={workGroup}
 					innerLabelOn={true}
 					innerLabel={$_('No workgroup assigned')}
-					defaultValue=""
 				/>
 			{/if}
 

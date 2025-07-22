@@ -685,5 +685,15 @@
     "Reports": "Rapporter",
     "Report": "Rapportera",
     "Report Thread": "Rapportera tråd",
-    "Delete Thread": "Ta bort tråd"
+    "Delete Thread": "Ta bort tråd",
+    "Failed to create delegation": "Misslyckades att skapa delegering",
+    "Deleting Thread": "Tar bort tråd",
+    "Are you sure you want to delete this thread?": "Är du säker på att du vill ta bort denna tråd?",
+    "Successfully deleted thread": "Tråden har tagits bort",
+    "Could not pin poll": "Kunde inte fästa omröstning",
+    "Successfully pinned poll": "Omröstningen har fästs",
+    "Public Poll": "Offentlig omröstning",
+    "Private Poll": "Privat omröstning",
+    "Group owner isn't allowed to leave, deleting the group is an option": "Gruppägaren får inte lämna, att ta bort gruppen är ett alternativ",
+    "An error occurred while leaving the group.": "Ett fel inträffade när du lämnade gruppen."
 }

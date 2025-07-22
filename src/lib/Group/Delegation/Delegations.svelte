@@ -3,7 +3,6 @@
 	import { onMount } from 'svelte';
 	import type { Group, Tag } from '../interface';
 	import type { Delegate, DelegateRelation } from './interfaces';
-	import type { poppup } from '$lib/Generic/Poppup';
 	import ErrorHandler from '$lib/Generic/ErrorHandler.svelte';
 	import ProfilePicture from '$lib/Generic/ProfilePicture.svelte';
 	import Fa from 'svelte-fa';
@@ -44,7 +43,7 @@
 	const getGroupTags = async () => {
 		const { res, json } = await fetchRequest('GET', `group/${group.id}/tags?limit=1000`);
 
-		tags = json.results;
+		tags = json?.results;
 
 		if (!res.ok) return;
 	};
@@ -57,7 +56,7 @@
 		const { json, res } = await fetchRequest('GET', `group/${group.id}/delegate/pools?limit=1000`);
 		if (!res.ok) return;
 
-		delegates = json.results.map((delegatePool: any) => {
+		delegates = json?.results.map((delegatePool: any) => {
 			return { ...delegatePool.delegates[0].group_user, pool_id: delegatePool.id };
 		});
 	};
@@ -75,13 +74,13 @@
 		const { json, res } = await fetchRequest('GET', `group/${group.id}/delegates?limit=1000`);
 
 		// Determines whether to show the "remove as delegate" or "add as delegate" buttons, depending on if user already has delegated or not earlier.
-		json.results.forEach((relation: any) => {
+		json?.results.forEach((relation: any) => {
 			delegates.map((delegate) => {
 				if (delegate.pool_id === relation.delegate_pool_id) delegate.isInRelation = true;
 				return delegate;
 			});
 		});
-		delegateRelations = json.results;
+		delegateRelations = json?.results;
 		if (res.ok) {
 			setupDelegationTagStructure();
 		}
@@ -91,7 +90,12 @@
 		// Check if a relation exists for this delegate; if not, create one
 		let relation = delegateRelations.find((r) => r.delegate_pool_id === delegate.pool_id);
 		if (!relation) {
-			relation = { delegate_pool_id: delegate.pool_id, tags: [] };
+			relation = {
+				delegate_pool_id: delegate.pool_id,
+				tags: [],
+				id: delegate.pool_id,
+				delegates: []
+			};
 			delegateRelations = [...delegateRelations, relation];
 		}
 
@@ -117,7 +121,7 @@
 			tagStructure.tags.push(tag.id);
 		}
 		if (!relation.tags.some((t) => t.id === tag.id)) {
-			relation.tags.push({ ...tag, active: true, tag_name: tag.name });
+			relation.tags.push({ ...tag, active: true, name: tag.name });
 		}
 
 		// Update state
@@ -134,7 +138,7 @@
 		});
 
 		if (!res.ok) {
-			errorHandler.addPopup({ message: 'Failed to create delegation', success: false });
+			// errorHandler.addPopup({ message: 'Failed to create delegation', success: false });
 			return;
 		}
 
@@ -142,7 +146,10 @@
 
 		// Ensure a relation exists in delegateRelations
 		if (!delegateRelations.some((r) => r.delegate_pool_id === delegate_pool_id)) {
-			delegateRelations = [...delegateRelations, { delegate_pool_id, tags: [] }];
+			delegateRelations = [
+				...delegateRelations,
+				{ delegate_pool_id, tags: [], id: delegate_pool_id, delegates: [] }
+			];
 			setupDelegationTagStructure();
 		}
 
@@ -156,11 +163,7 @@
 		const toSendDelegates = delegateRelations.map(({ tags, delegate_pool_id }) => ({
 			delegate_pool_id,
 			tags: tags.map(({ id }) => id)
-		}))[0] ;
-
-
-		console.log(toSendDelegates);
-		
+		}))[0];
 
 		const { res } = await fetchRequest(
 			'POST',
@@ -168,7 +171,7 @@
 			toSendDelegates
 		);
 
-		if (!res.ok) {			
+		if (!res.ok) {
 			errorHandler.addPopup({ message: 'Failed to save new delegation', success: false });
 			return;
 		}
@@ -197,8 +200,8 @@
 	};
 
 	const initialSetup = async () => {
-		getGroupTags();
-		getDelegatePools();
+		await getGroupTags();
+		await getDelegatePools();
 		await getDelegateRelations();
 		setupDelegationTagStructure();
 	};
@@ -226,7 +229,6 @@
 						{#each delegates as delegate}
 							<div class="voter-item">
 								<ProfilePicture
-									key={delegate.user.id}
 									displayName
 									username={delegate.user.username}
 									userId={delegate.user.id}
@@ -245,7 +247,6 @@
 											}, 1000);
 										}}
 										type="radio"
-										key={`${tag.id}-${delegate.pool_id}`}
 										name={tag.name}
 										checked={delegationTagsStructure
 											.find((relation) => relation.delegate_pool_id === delegate.pool_id)

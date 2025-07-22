@@ -9,7 +9,6 @@
 	import { pollComments as pollCommentsLimit } from '../Generic/APILimits.json';
 	import CommentFilter from './CommentFilter.svelte';
 	import ErrorHandler from '$lib/Generic/ErrorHandler.svelte';
-	import type { poppup } from '$lib/Generic/Poppup';
 	import { commentsStore } from './commentStore';
 	import type { Comment as comment } from '$lib/Poll/interface';
 
@@ -27,7 +26,7 @@
 	const setUpComments = async () => {
 		const { comments, next } = await getComments(getId(), api, offset, sortBy, searchString);
 
-		comments.forEach((comment: comment) => {
+		comments?.forEach((comment: comment) => {
 			comment.reply_depth = getCommentDepth(comment, comments);
 		});
 
@@ -55,7 +54,7 @@
 	$: if (sortBy || searchString) setUpComments();
 </script>
 
-<div class={`rounded dark:text-darktext min-h-[300px] ${Class}`} id="comments">
+<div class={`rounded dark:text-darktext min-h-[200px] ${Class}`} id="comments">
 	<div class="border-b border-gray-300">
 		<!-- Add Comment -->
 
@@ -65,6 +64,7 @@
 			bind:sortBy
 			bind:searchString
 			Class="flex flex-row-reverse items-center justify-end mb-2 gap-8"
+			bind:proposals
 		/>
 	</div>
 
@@ -78,7 +78,7 @@
 	</div>
 
 	{#if $commentsStore.filteredComments.length === 0}
-		<div class="text-center mt-6">{$_('There are currently no comments')}</div>
+		<div class="text-center mt-6 dark:text-darkmodeText">{$_('There are currently no comments')}</div>
 	{/if}
 </div>
 

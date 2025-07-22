@@ -88,7 +88,7 @@
 		let api = `group/${groupId}/users?limit=100`;
 		const { json, res } = await fetchRequest('GET', api);
 		if (!res.ok) return [];
-		return json.results;
+		return json?.results;
 	};
 
 	const fetchMembers = async () => {
@@ -137,7 +137,7 @@
 		if (showCreateScheduleEvent) {
 			selectedFrequency = 1;
 			selectedMembers = [];
-			selectedReminders = [];
+
 		} else if (showEditScheduleEvent || showEvent) {
 			selectedFrequency =
 				selectedEvent.repeat_frequency &&
@@ -148,7 +148,7 @@
 				selectedEvent.assignee_ids?.map((member: any) => {
 					return member.id;
 				}) || [];
-			selectedReminders = selectedEvent.reminders || [];
+
 		}
 	};
 
@@ -160,8 +160,9 @@
 		const updatedEvent = {
 			...selectedEvent,
 			assignee_ids: type === 'group' ? selectedMembers : undefined,
-			reminders: type === 'group' ? selectedReminders : undefined,
-			repeat_frequency: type === 'group' ? selectedFrequency : undefined
+			reminders: selectedReminders,
+			repeat_frequency: type === 'group' ? selectedFrequency : undefined,
+
 		};
 
 		try {
@@ -183,6 +184,7 @@
 	<CreateEventModal
 		bind:selectedEvent
 		bind:showCreateScheduleEvent
+		bind:selectedReminders
 		on:submit={handleSubmit}
 		{type}
 		{workGroups}

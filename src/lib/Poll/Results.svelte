@@ -25,14 +25,14 @@
 			`group/poll/${$page.params.pollId}/proposals?limit=1000&order_by=score_desc`
 		);
 
-		if (pollType === 4) proposals = json.results;
+		if (pollType === 4) proposals = json?.results;
 		else if (pollType === 3)
 			//Only one proposal wins in date poll
 			proposals = [
 				{
-					id: json.results[0].id,
-					title: formatDate(json.results[0].start_date),
-					description: formatDate(json.results[0].end_date)
+					id: json?.results[0].id,
+					title: formatDate(json?.results[0].start_date),
+					description: formatDate(json?.results[0].end_date)
 				}
 			];
 
@@ -67,7 +67,6 @@
 
 		if (poll?.status === 2 || poll?.status === 0) {
 			let time = setInterval(() => {
-				
 				if (poll.status === -1 || poll.status === 1 || k === 15) clearInterval(time);
 				getProposals();
 				getPollData();
@@ -83,12 +82,12 @@
 	>
 
 	{#if pollType === 4}
-		<!-- If the winner has atleast one point, display statistics (otherwise it looks empty) -->
 		{#if poll?.status === 2 || poll?.status === 0}
 			{$_('Calculating results...')}
 		{:else if poll?.status === -1}
 			{$_('Vote calculation failed')}
-		{:else}
+		{:else if poll?.status === 1}
+			<!-- If the winner has atleast one point, display statistics (otherwise it looks empty) -->
 			{#if proposals[0]?.score > 0}
 				<Statistics bind:votes bind:labels />
 			{/if}

@@ -6,7 +6,8 @@
 		faBell,
 		faPieChart,
 		faArrowLeft,
-		faInfo
+		faInfo,
+		faWarning
 	} from '@fortawesome/free-solid-svg-icons';
 	import { _ } from 'svelte-i18n';
 	import RadioButtons2 from '$lib/Generic/RadioButtons2.svelte';
@@ -14,8 +15,10 @@
 	import { onMount } from 'svelte';
 	import { configToReadable } from '$lib/utils/configToReadable';
 	import { env } from '$env/dynamic/public';
+	import type { report } from '$lib/Generic/interface';
+	import { linkToPost } from '$lib/Generic/GenericFunctions';
 
-	let selectedPage: 'profile' | 'notifications' | 'poll-process' | 'info' = 'profile',
+	let selectedPage: 'profile' | 'notifications' | 'poll-process' | 'info' | 'reports' = 'profile',
 		optionsDesign =
 			'flex items-center gap-3 w-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 transition-all',
 		userConfig = {
@@ -47,8 +50,9 @@
 				voting: false
 			}
 		},
-		version = '0.2.6',
-		reports: any = [];
+		reports: report[] = [],
+		serverConfig: any = {},
+		version = '0.2.14';
 
 	const userUpdate = async () => {
 		const { res, json } = await fetchRequest('POST', 'user/update', {
@@ -61,7 +65,7 @@
 
 		if (!res.ok) return;
 
-		// serverConfig = json;
+		serverConfig = json;
 	};
 
 	const getUserConfig = async () => {
@@ -83,7 +87,7 @@
 
 		if (!res.ok) return;
 
-		reports = json.results;
+		reports = json?.results;
 	};
 
 	const a = (key1: string, key2: string = '') => {
@@ -125,13 +129,14 @@
 					{$_('Settings')}
 				</h1>
 			</div>
-			<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
+
+			<!-- TODO: Put an #each here for iterating over the buttons for cleanup and easier maintainability -->
 			<div class="mt-4">
 				<button
 					on:click={() => (selectedPage = 'profile')}
 					class={`${optionsDesign}`}
 					class:bg-gray-100={selectedPage === 'profile'}
+					class:dark:bg-gray-800={selectedPage === 'profile'}
 					class:border-l-2={selectedPage === 'profile'}
 					class:border-primary={selectedPage === 'profile'}
 				>
@@ -141,6 +146,7 @@
 					on:click={() => (selectedPage = 'notifications')}
 					class={`${optionsDesign}`}
 					class:bg-gray-100={selectedPage === 'notifications'}
+					class:dark:bg-gray-800={selectedPage === 'notifications'}
 					class:border-l-2={selectedPage === 'notifications'}
 					class:border-primary={selectedPage === 'notifications'}
 				>
@@ -150,6 +156,7 @@
 					on:click={() => (selectedPage = 'poll-process')}
 					class={`${optionsDesign}`}
 					class:bg-gray-100={selectedPage === 'poll-process'}
+					class:dark:bg-gray-800={selectedPage === 'poll-process'}
 					class:border-l-2={selectedPage === 'poll-process'}
 					class:border-primary={selectedPage === 'poll-process'}
 				>
@@ -159,10 +166,21 @@
 					on:click={() => (selectedPage = 'info')}
 					class={`${optionsDesign}`}
 					class:bg-gray-100={selectedPage === 'info'}
+					class:dark:bg-gray-800={selectedPage === 'info'}
 					class:border-l-2={selectedPage === 'info'}
 					class:border-primary={selectedPage === 'info'}
 				>
 					<Fa icon={faInfo} class="w-5 h-5" />{$_('Information')}
+				</button>
+				<button
+					on:click={() => (selectedPage = 'reports')}
+					class={`${optionsDesign}`}
+					class:bg-gray-100={selectedPage === 'reports'}
+					class:dark:bg-gray-800={selectedPage === 'reports'}
+					class:border-l-2={selectedPage === 'reports'}
+					class:border-primary={selectedPage === 'reports'}
+				>
+					<Fa icon={faWarning} class="w-5 h-5" />{$_('Reports')}
 				</button>
 			</div>
 		</div>
@@ -255,17 +273,21 @@
 						{/each}
 					</ul>
 				{:else if selectedPage === 'info'}
-					<div>Version: {version}</div>
-					<!-- <div>Version Backend: {serverConfig.GIT_HASH}</div> -->
-
-
-					<span class="mt-6">{$_("Reports")}</span>
-					{#each reports as reports}
-						<div class="flex justify-between p-2 rounded hover:bg-gray-100">
-							<span>{reports?.title}</span>
-							<span>{reports?.description}</span>
-						</div>
-					{/each}
+					<div>{$_('Frontend version')}: {version}</div>
+					<div>{$_('Backend version')}: {serverConfig.VERSION}</div>
+				{:else if selectedPage === 'reports'}
+					{#if reports?.length > 0}
+						<span>{$_('Reports')}</span>
+						{#each reports as report}
+							<a
+								href={`${linkToPost(report.post_id, report.group_id, report.post_type)}`}
+								class="flex justify-between p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+							>
+								<span>{report?.title}</span>
+								<span>{report?.description}</span>
+							</a>
+						{/each}
+					{/if}
 				{/if}
 			</ul>
 		</div>

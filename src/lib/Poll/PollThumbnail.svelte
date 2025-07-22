@@ -7,6 +7,7 @@
 	import { fetchRequest } from '$lib/FetchRequest';
 	import { _ } from 'svelte-i18n';
 	import NotificationOptions from '$lib/Generic/NotificationOptions.svelte';
+	import DefaultPFP from '$lib/assets/abstract-user-flat-4.svg';
 	import { onMount } from 'svelte';
 	import { getPhase, getPhaseUserFriendlyNameWithNumber, nextPhase } from './functions';
 	import DefaultBanner from '$lib/assets/default_banner_group.png';
@@ -18,23 +19,24 @@
 	import Button from '$lib/Generic/Button.svelte';
 	import NewDescription from './NewDescription.svelte';
 	import ErrorHandler from '$lib/Generic/ErrorHandler.svelte';
-	import type { poppup } from '$lib/Generic/Poppup';
 	import { env } from '$env/dynamic/public';
 	import {
 		faAnglesRight,
 		faThumbtack,
 		faAlignLeft,
 		faCalendarAlt,
-		faSlash
+		faSlash,
+		faGlobe,
+		faLock
 	} from '@fortawesome/free-solid-svg-icons';
 	import { goto } from '$app/navigation';
 	import MultipleChoices from '$lib/Generic/MultipleChoices.svelte';
-	import DeletePollModal from './DeletePollModal.svelte';
 	import ChatIcon from '$lib/assets/Chat_fill.svg';
 	import Timeline from './NewDesign/Timeline.svelte';
 	import ReportPollModal from './ReportPollModal.svelte';
 	import type { Permissions } from '$lib/Group/Permissions/interface';
 	import { groupUserStore } from '$lib/Group/interface';
+	import DeletePostModal from './DeletePostModal.svelte';
 
 	export let poll: poll;
 
@@ -59,7 +61,13 @@
 		const { json, res } = await fetchRequest('POST', `group/poll/${poll?.id}/update`, {
 			pinned: !poll?.pinned
 		});
-		if (res.ok) poll.pinned = !poll?.pinned;
+
+		if (!res.ok) {
+			errorHandler.addPopup({ message: 'Could not pin poll', success: false });
+			return;
+		}
+
+		poll.pinned = !poll?.pinned;
 	};
 
 	const submitTagVote = async (tag: number) => {
@@ -81,7 +89,8 @@
 
 		if (!res.ok) return;
 
-		let selectedTagName = json.results.find((tag: Tag) => tag.user_vote === true)?.tags[0].tag_name;
+		let selectedTagName = json?.results.find((tag: Tag) => tag.user_vote === true)?.tags[0]
+			.tag_name;
 
 		if (selectedTagName) {
 			selectedTag = tags?.find((tag) => tag.name === selectedTagName)?.id || 0;
@@ -184,6 +193,21 @@
 				{poll?.title}
 			</a>
 		{:else}
+			<div class="text-black dark:text-darkmodeText flex items-center">
+				<img
+					class="h-6 w-6 mr-1 rounded-full break-all"
+					src={`${
+						poll?.created_by?.user?.profile_image
+							? env.PUBLIC_API_URL + poll?.created_by?.user?.profile_image
+							: DefaultPFP
+					}`}
+					alt={'poll Thumbnail'}
+					on:error={(e) => onThumbnailError(e, DefaultPFP)}
+				/>
+				<span class="break-all text-sm text-gray-700 dark:text-darkmodeText"
+					>{poll?.created_by?.user?.username}</span
+				>
+			</div>
 			<div class="flex justify-between items-start gap-4 pb-2">
 				<a
 					class="cursor-pointer text-primary dark:text-secondary hover:underline text-xl break-words"
@@ -216,8 +240,8 @@
 					<MultipleChoices
 						bind:choicesOpen
 						labels={!(phase === 'result' || phase === 'prediction_vote') &&
-						(poll?.allow_fast_forward &&
-							(permissions?.poll_fast_forward || $groupUserStore?.is_admin))
+						poll?.allow_fast_forward &&
+						(permissions?.poll_fast_forward || $groupUserStore?.is_admin)
 							? [$_('Delete Poll'), $_('Report Poll'), $_('Fast Forward')]
 							: [$_('Delete Poll'), $_('Report Poll')]}
 						functions={[
@@ -237,6 +261,12 @@
 				<HeaderIcon Class="!p-0 !cursor-default" icon={faAlignLeft} text={'Text Poll'} />
 			{:else if poll?.poll_type === 3}
 				<HeaderIcon Class="!p-0 !cursor-default" icon={faCalendarAlt} text={'Date Poll'} />
+			{/if}
+
+			{#if poll.public}
+				<HeaderIcon Class="!p-0 !cursor-default" icon={faGlobe} text={'Public Poll'} />
+			{:else}
+				<HeaderIcon Class="!p-0 !cursor-default" icon={faLock} text={'Private Poll'} />
 			{/if}
 
 			<!-- Fast Forward Icon -->
@@ -322,7 +352,6 @@
 							Class="w-[47%] "
 							classInner="w-full !p-2 bg-white p-4 border-gray-400 rounded-md border"
 							onInput={() => (voting = true)}
-							defaultValue=""
 						/>
 						{#if voting}
 							<Button type="submit" Class="w-[47%]" buttonStyle="primary-light"
@@ -418,8 +447,14 @@
 	</div>
 </div>
 
-<DeletePollModal bind:deletePollModalShow pollId={poll?.id} />
-<ReportPollModal bind:reportPollModalShow pollId={$page.params.pollId} />
+<DeletePostModal bind:deleteModalShow={deletePollModalShow} postId={poll?.id} />
+
+<ReportPollModal
+	post_type="poll"
+	group_id={poll.group_id}
+	post_id={poll.id}
+	bind:reportModalShow={reportPollModalShow}
+/>
 
 <ErrorHandler bind:this={errorHandler} />
 

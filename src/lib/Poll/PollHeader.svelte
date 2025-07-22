@@ -17,10 +17,9 @@
 	import NewDescription from './NewDescription.svelte';
 	import MultipleChoices from '$lib/Generic/MultipleChoices.svelte';
 	import ErrorHandler from '$lib/Generic/ErrorHandler.svelte';
-	import type { poppup } from '$lib/Generic/Poppup';
-	import DeletePollModal from './DeletePollModal.svelte';
 	import ReportPollModal from './ReportPollModal.svelte';
 	import { groupUserStore, groupUserPermissionStore } from '$lib/Group/interface';
+	import DeletePostModal from './DeletePostModal.svelte';
 
 	export let poll: poll,
 		displayTag = false,
@@ -138,8 +137,14 @@
 	</div>
 {/if}
 
-<DeletePollModal bind:deletePollModalShow pollId={$page.params.pollId} />
-<ReportPollModal bind:reportPollModalShow pollId={$page.params.pollId} />
+<DeletePostModal bind:deleteModalShow={deletePollModalShow} postId={$page.params.pollId} />
+
+<ReportPollModal
+	post_type="poll"
+	group_id={poll.group_id}
+	post_id={poll.id}
+	bind:reportModalShow={reportPollModalShow}
+/>
 
 <ErrorHandler bind:this={errorHandler} />
 

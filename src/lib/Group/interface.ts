@@ -120,7 +120,7 @@ export interface groupUser {
 
 export type SelectablePages = 'Members' | 'Pending Invites' | 'Invite';
 
-export const groupUserStore = writable<groupUser>({
+export const groupUserStore = writable<groupUser | null>({
 	user: {
 		id: 0,
 		username: '',
@@ -144,16 +144,7 @@ export const groupUserStore = writable<groupUser>({
 export const groupUserPermissionStore = writable<Permissions>();
 
 export interface Thread {
-	created_by: {
-		id: number;
-		username: string;
-		profile_image: null | string;
-		banner_image: null | string;
-		is_admin: boolean;
-		permission_id: number;
-		permission_name: string;
-		group_id: number;
-	};
+	created_by: GroupUser;
 	title: string;
 	id: number;
 	total_comments: number;
@@ -167,6 +158,10 @@ export interface Thread {
 		id: number;
 		name: string;
 	};
+	group_name: string;
+	group_id: number;
+	group_image: string;
+	public:boolean;
 }
 
 export interface GroupFilter { joined: 'all' | 'member' | 'not-member', search: string }

@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { fetchRequest } from '$lib/FetchRequest';
-	import type { Comment, Phase, poll, proposal } from '$lib/Poll/interface';
+	import type { Comment, Phase, proposal } from '$lib/Poll/interface';
 	import Proposal from './Proposal.svelte';
 	import { proposals as proposalsLimit } from '../Generic/APILimits.json';
 	import { onMount } from 'svelte';
 	import ErrorHandler from '$lib/Generic/ErrorHandler.svelte';
-	import type { poppup } from '$lib/Generic/Poppup';
 	import VotingSlider from './VotingSlider.svelte';
 	import { groupUserStore } from '$lib/Group/interface';
 
@@ -50,7 +49,7 @@
 
 		if (!res.ok) return;
 
-		proposals = json.results;
+		proposals = json?.results;
 	};
 
 	const getVotes = async () => {
@@ -62,7 +61,7 @@
 		if (!json?.results || json?.results?.length === 0) return;
 
 		voting = voting.map((vote) => ({
-			score: (vote.score = json.results.find(
+			score: (vote.score = json?.results.find(
 				(score: { score: number; proposal: number }) => score.proposal === vote.proposal
 			).raw_score),
 			proposal: vote.proposal
@@ -82,7 +81,7 @@
 			return;
 		}
 
-		delegateVoting = json.results[0]?.vote.map((vote: any) => ({
+		delegateVoting = json?.results[0]?.vote.map((vote: any) => ({
 			score: vote.raw_score,
 			proposal: vote.proposal_id
 		}));
@@ -112,7 +111,7 @@
 					success: false
 				});
 			return;
-		}		
+		}
 		errorHandler.addPopup({
 			message: 'Successfully voted',
 			success: true
@@ -136,7 +135,7 @@
 			});
 			return;
 		}
-				
+
 		errorHandler.addPopup({
 			message: 'Successfully voted',
 			success: true
@@ -163,9 +162,7 @@
 							bind:selectedProposal
 							bind:filteredComments={comments}
 							bind:phase
-							onChange={() => {}}
 							{proposal}
-							{voting}
 						>
 							{#if phase === 'delegate_vote' || phase === 'vote'}
 								{@const score = voting?.find((vote) => vote.proposal === proposal.id)?.score}

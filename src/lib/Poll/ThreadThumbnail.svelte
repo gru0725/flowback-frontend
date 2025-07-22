@@ -1,20 +1,33 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { fetchRequest } from '$lib/FetchRequest';
+	import DefaultPFP from '$lib/assets/abstract-user-flat-4.svg';
+	import DefaultBanner from '$lib/assets/default_banner_group.png';
 	import ChatIcon from '$lib/assets/Chat_fill.svg';
+	import { page } from '$app/stores';
 	import type { poppup } from '$lib/Generic/Poppup';
 	import NotificationOptions from '$lib/Generic/NotificationOptions.svelte';
 	import Fa from 'svelte-fa';
-	import { faThumbTack, faThumbsUp, faThumbsDown } from '@fortawesome/free-solid-svg-icons';
+	import {
+		faThumbTack,
+		faThumbsUp,
+		faThumbsDown,
+		faGlobe,
+		faLock
+	} from '@fortawesome/free-solid-svg-icons';
 	import { _ } from 'svelte-i18n';
 	import NewDescription from '$lib/Poll/NewDescription.svelte';
 	import { groupUserStore, type Thread } from '$lib/Group/interface';
 	import MultipleChoices from '$lib/Generic/MultipleChoices.svelte';
-	import ReportThreadModal from './ReportThreadModal.svelte';
+	import ReportPollModal from './ReportPollModal.svelte';
+	import DeletePostModal from './DeletePostModal.svelte';
+	import { env } from '$env/dynamic/public';
+	import { onThumbnailError } from '$lib/Generic/GenericFunctions';
+	import HeaderIcon from '$lib/Header/HeaderIcon.svelte';
 
 	export let thread: Thread;
 	let threads: Thread[] = [],
-		reportThreadModalShow = false,
+		reportModalShow = false,
+		deleteModalShow = false,
 		choicesOpen = false,
 		poppup: poppup;
 
@@ -66,18 +79,59 @@
 		thread.pinned = !thread?.pinned;
 		threads = threads;
 	};
+
+	const deleteThread = async () => {
+		const { res, json } = await fetchRequest('POST', `group/thread/${thread?.id}/delete`);
+
+		if (!res.ok) {
+			poppup = { message: 'Could not delete thread', success: false };
+			return;
+		}
+
+		poppup = { message: 'Thread deleted successfully', success: true };
+		threads = threads.filter((t) => t.id !== thread.id);
+	};
+
 	let threadIsBeingReported = false;
 	let reporting = false;
 </script>
 
 <div
-	class="bg-white dark:bg-darkobject dark:text-darkmodeText p-6 shadow-[0_0_5px_rgb(203,203,203)] rounded-md"
+	class="bg-white dark:bg-darkobject dark:text-darkmodeText p-6 shadow-[0_0_5px_rgb(203,203,203)] dark:shadow-[0_0_5px_rgb(103,103,103)] rounded-md"
 >
 	<div class="flex justify-between items-center">
-		<a
-			class="break-words cursor-pointer hover:underline text-primary dark:text-secondary text-xl text-left"
-			href={`/groups/${thread?.created_by?.group_id}/thread/${thread?.id}`}>{thread?.title}</a
-		>
+		{#if !$page.params.groupId}
+			<a
+				href={`/groups/${thread?.group_id}`}
+				class="text-black dark:text-darkmodeText flex items-center"
+			>
+				<img
+					class="h-6 w-6 mr-1 rounded-full break-all"
+					src={`${env.PUBLIC_API_URL}${thread?.group_image}`}
+					alt={'thread Thumbnail'}
+					on:error={(e) => onThumbnailError(e, DefaultBanner)}
+				/>
+				<span class="break-all text-sm text-gray-700 dark:text-darkmodeText"
+					>{thread?.group_name}</span
+				>
+			</a>
+			{:else}
+			 <div
+				class="text-black dark:text-darkmodeText flex items-center"
+			>
+			<!-- if group doesn't hide displaying creators -->
+				<img
+					class="h-6 w-6 mr-1 rounded-full break-all"
+					src={`${thread?.created_by?.user?.profile_image ? env.PUBLIC_API_URL + thread?.created_by?.user?.profile_image : DefaultPFP}`}
+					alt={'thread Thumbnail'}
+					on:error={(e) => onThumbnailError(e, DefaultPFP)}
+				/>
+				<span class="break-all text-sm text-gray-700 dark:text-darkmodeText"
+					>{thread?.created_by?.user?.username}</span
+				>
+			</div>
+		{/if}
+
 		<div class=" inline-flex gap-4 items-baseline">
 			<NotificationOptions
 				type="thread"
@@ -100,20 +154,37 @@
 			<MultipleChoices
 				bind:choicesOpen
 				labels={[$_('Delete Thread'), $_('Report Thread')]}
-				functions={[_, () => ((reportThreadModalShow = true), (choicesOpen = false))]}
+				functions={[
+					() => (deleteModalShow = true),
+					() => ((reportModalShow = true), (choicesOpen = false))
+				]}
 				Class="text-black justify-self-center"
 			/>
 		</div>
 	</div>
 
-	{#if thread?.work_group}
-		<span class="text-sm text-gray-500 dark:text-darkmodeText">#{thread.work_group.name}, </span>
+	<a
+		class="break-words cursor-pointer hover:underline text-primary dark:text-secondary text-xl text-left"
+		href={`/groups/${thread?.created_by?.group_id}/thread/${thread?.id}`}>{thread?.title}</a
+	>
+
+	<div>
+		{#if thread?.work_group}
+			<span class="text-sm text-gray-500 dark:text-darkmodeText">#{thread.work_group.name}, </span>
+		{/if}
+		{#if thread?.created_at}
+			<span class="text-sm text-gray-500 dark:text-darkmodeText">
+				{new Date(thread.created_at).toISOString().split('T')[0].replace(/-/g, '.')}
+			</span>
+		{/if}
+	</div>
+
+	{#if thread?.public}
+		<HeaderIcon Class="!p-0 !cursor-default" icon={faGlobe} text={'Public Poll'} />
+	{:else}
+		<HeaderIcon Class="!p-0 !cursor-default" icon={faLock} text={'Private Poll'} />
 	{/if}
-	{#if thread?.created_at}
-		<span class="text-sm text-gray-500 dark:text-darkmodeText">
-			{new Date(thread.created_at).toISOString().split('T')[0].replace(/-/g, '.')}
-		</span>
-	{/if}
+
 	{#if thread?.description}
 		<NewDescription limit={2} lengthLimit={700} description={thread?.description} />
 	{/if}
@@ -152,4 +223,12 @@
 	</div>
 </div>
 
-<ReportThreadModal bind:reportThreadModalShow threadId={$page.params.pollId} />
+<!-- TODO: Fix so group id is correct -->
+<ReportPollModal
+	post_type="thread"
+	group_id={$page.params.groupId}
+	post_id={thread?.id}
+	bind:reportModalShow
+/>
+
+<DeletePostModal bind:deleteModalShow postId={thread?.id} post_type="thread" />
